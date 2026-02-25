@@ -9,12 +9,25 @@ import { AppDataSource } from '../src/config/database';
 let initialized = false;
 async function ensureInit() {
   if (!initialized && !AppDataSource.isInitialized) {
-    await AppDataSource.initialize();
-    initialized = true;
+    try {
+      await AppDataSource.initialize();
+      initialized = true;
+    } catch (err) {
+      console.error('[Vercel] DB init failed:', err);
+      // Don't throw — let the request proceed, health endpoint will show disconnected
+    }
   }
 }
 
 export default async function handler(req: any, res: any) {
-  await ensureInit();
-  return app(req, res);
+  try {
+    await ensureInit();
+    return app(req, res);
+  } catch (err: any) {
+    console.error('[Vercel] Handler error:', err);
+    res.status(500).json({
+      status: 'error',
+      message: err?.message || 'Serverless function failed',
+    });
+  }
 }
