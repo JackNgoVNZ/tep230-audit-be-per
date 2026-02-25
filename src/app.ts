@@ -21,10 +21,17 @@ import jobsRouter from './modules/jobs/jobs.router';
 const app = express();
 
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    process.env.FRONTEND_URL || 'https://tep230audit-frontend.vercel.app',
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    // Allow localhost dev
+    if (origin.includes('localhost')) return callback(null, true);
+    // Allow all vercel.app domains (production + preview deployments)
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
+    // Allow explicit FRONTEND_URL
+    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) return callback(null, true);
+    callback(null, false);
+  },
   credentials: true,
 }));
 app.use(express.json());
